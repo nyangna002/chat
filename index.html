@@ -238,4 +238,165 @@
                         <label>텍스트/말풍선색</label>
                         <div class="color-picker-wrapper">
                             <input type="color" id="chatText" value="#1a1a1a">
-                            <span class="color-hex" id="chatText-hex">#1a
+                            <span class="color-hex" id="chatText-hex">#1a1a1a</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="panel-title">Outside Area (새로 생기는 마진 영역)</div>
+                <div class="row">
+                    <div class="control-group">
+                        <label>외부 배경색</label>
+                        <div class="color-picker-wrapper">
+                            <input type="color" id="outerBg" value="#202025">
+                            <span class="color-hex" id="outerBg-hex">#202025</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+            <div class="preview-panel" id="preview-panel">
+                <div class="preview-placeholder" id="placeholder">
+                    이미지를 업로드하면 이곳에 실시간 미리보기가 표시됩니다.
+                </div>
+                <canvas id="canvas"></canvas>
+            </div>
+            <a id="download" class="btn-download">📥 가공된 이미지 다운로드</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    const upload = document.getElementById('upload');
+    const marginInput = document.getElementById('margin');
+    const marginVal = document.getElementById('margin-val');
+    
+    const chatBgInput = document.getElementById('chatBg');
+    const chatTextInput = document.getElementById('chatText');
+    const outerBgInput = document.getElementById('outerBg');
+
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const placeholder = document.getElementById('placeholder');
+    const downloadBtn = document.getElementById('download');
+
+    let originalImage = null;
+
+    // 파일 로드 및 초기화
+    upload.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            originalImage = new Image();
+            originalImage.onload = () => {
+                placeholder.style.display = 'none';
+                canvas.style.display = 'block';
+                canvas.style.maxHeight = '550px';
+                downloadBtn.style.display = 'block';
+                processImage();
+            };
+            originalImage.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // 모든 컨트롤러에 이벤트 바인딩 (실시간 반응)
+    const inputs = [marginInput, chatBgInput, chatTextInput, outerBgInput];
+    inputs.forEach(input => {
+        input.addEventListener('input', () => {
+            // 텍스트 값들 업데이트
+            if (input.id === 'margin') marginVal.innerText = marginInput.value + 'px';
+            document.getElementById(`${input.id}-hex`).innerText = input.value;
+            
+            // 이미지 실시간 프로세싱
+            if (originalImage) processImage();
+        });
+    });
+
+    // 헥사코드 변환 함수
+    function hexToRgb(hex) {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return { r, g, b };
+    }
+
+    // 핵심 이미지 연산 함수
+    function processImage() {
+        const margin = parseInt(marginInput.value);
+        
+        const cBg = hexToRgb(chatBgInput.value);
+        const cText = hexToRgb(chatTextInput.value);
+        const oBg = outerBgInput.value;
+
+        const srcW = originalImage.width;
+        const srcH = originalImage.height;
+
+        // 3px 테두리 영역 산정
+        const borderW = srcW + 6;
+        const borderH = srcH + 6;
+
+        // 최종 캔버스 사이즈 결정 (원본 + 3px 양방향 + 유저지정 마진 양방향)
+        canvas.width = borderW + (margin * 2);
+        canvas.height = borderH + (margin * 2);
+
+        // 1. 전체 영역을 유저가 지정한 [외부 배경색]으로 채우기
+        ctx.fillStyle = oBg;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // 2. 임시 캔버스를 만들어 내부 픽셀 색상 변경 (픽셀 마스킹)
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = srcW;
+        tempCanvas.height = srcH;
+        const tCtx = tempCanvas.getContext('2d');
+        tCtx.drawImage(originalImage, 0, 0);
+
+        const imgData = tCtx.getImageData(0, 0, srcW, srcH);
+        const data = imgData.data;
+
+        // 원본 이미지의 (0,0) 가장자리 픽셀 색상 추출 -> 3px 라인 색상으로 사용
+        const edgeR = data[0];
+        const edgeG = data[1];
+        const edgeB = data[2];
+
+        for (let i = 0; i < data.length; i += 4) {
+            const r = data[i];
+            const g = data[i+1];
+            const b = data[i+2];
+
+            // 명도(Brightness) 공식 기반 흑백 분리 알고리즘
+            const brightness = 0.299 * r + 0.587 * g + 0.114 * b;
+
+            if (brightness < 140) { // 글씨 및 어두운 요소 -> 유저가 고른 내부 텍스트 색상으로
+                data[i] = cText.r;
+                data[i+1] = cText.g;
+                data[i+2] = cText.b;
+            } else { // 기본 배경 및 밝은 요소 -> 유저가 고른 내부 배경색으로
+                data[i] = cBg.r;
+                data[i+1] = cBg.g;
+                data[i+2] = cBg.b;
+            }
+        }
+        tCtx.putImageData(imgData, 0, 0);
+
+        // 3. 외곽 마진 안쪽에 3px 짜리 원본 주변색 라인 사각형 그리기
+        ctx.fillStyle = `rgb(${edgeR}, ${edgeG}, ${edgeB})`;
+        ctx.fillRect(margin, margin, borderW, borderH);
+
+        // 4. 가공된 대화방 내부 이미지를 3px 라인 내부에 정확히 안착
+        ctx.drawImage(tempCanvas, margin + 3, margin + 3);
+
+        // 5. 다운로드 버튼 활성화 및 주소 바인딩
+        downloadBtn.href = canvas.toDataURL('image/png');
+        downloadBtn.download = 'custom_chat_screenshot.png';
+    }
+</script>
+
+</body>
+</html>
