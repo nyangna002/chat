@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Perfect Separate Color Customizer</title>
+    <title>Perfect Stable Chat Customizer</title>
     <style>
         :root { --bg: #14141b; --panel: #1f1f2e; --text: #ffffff; --sub: #8f8fa3; --accent: #4f46e5; }
         body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 30px 15px; display: flex; flex-direction: column; align-items: center; }
@@ -26,38 +26,40 @@
         input[type="color"]::-webkit-color-swatch { border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); }
         input[type="range"] { width: 55%; accent-color: var(--accent); }
         
-        .switch { position: relative; display: inline-block; width: 44px; height: 22px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #444; transition: .3s; border-radius: 22px; }
-        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
-        input:checked + .slider { background-color: var(--accent); }
-        input:checked + .slider:before { transform: translateX(22px); }
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .btn { background: var(--accent); color: white; border: none; padding: 11px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.88rem; transition: background 0.2s; }
+        .btn:hover { background: #6366f1; }
+        .btn-success { background: #10b981; }
+        .btn-success:hover { background: #059669; }
+        .btn-danger { background: #ef4444; }
+        .btn-danger:hover { background: #dc2626; }
 
         .preview-container { background: #0b0b0f; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 450px; border: 2px dashed #2a2a3a; position: relative; }
         
-        .canvas-wrapper { position: relative; display: none; max-width: 100%; max-height: 65vh; box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
+        .canvas-wrapper { position: relative; display: none; max-width: 100%; max-height: 65vh; box-shadow: 0 20px 40px rgba(0,0,0,0.6); overflow: hidden; }
         canvas { display: block; max-width: 100%; max-height: 65vh; object-fit: contain; }
         
-        /* 움직이는 주황색 조절 서클 */
-        #profileMarker { position: absolute; border: 2px dashed #ff5500; background: rgba(255, 85, 0, 0.2); border-radius: 50%; display: none; cursor: move; z-index: 10; box-sizing: border-box; }
+        /* 다중 조작용 주황색 가이드 점선 서클 (확정 누르면 사라짐) */
+        .mask-sticker { position: absolute; border: 2px dashed #ff5500; background: rgba(255, 85, 0, 0.25); border-radius: 50%; cursor: move; z-index: 10; box-sizing: border-box; transform: translate(-50%, -50%); }
         
         .placeholder { color: var(--sub); text-align: center; font-size: 0.95rem; line-height: 1.5; }
+        .tip-box { font-size: 0.82rem; color: #a5b4fc; background: rgba(79, 70, 229, 0.15); padding: 12px; border-radius: 8px; border: 1px solid rgba(79, 70, 229, 0.3); line-height: 1.45; }
         
-        .dl-btn { background: var(--accent); color: white; padding: 16px; border-radius: 12px; text-align: center; text-decoration: none; font-weight: bold; margin-top: 15px; width: 100%; display: none; box-sizing: border-box; font-size: 1.05rem; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); }
-        .dl-btn:hover { background: #6366f1; }
+        .dl-btn { background: #ffffff; color: #000000; padding: 16px; border-radius: 12px; text-align: center; text-decoration: none; font-weight: bold; margin-top: 15px; width: 100%; display: none; box-sizing: border-box; font-size: 1.05rem; box-shadow: 0 4px 15px rgba(255,255,255,0.1); }
+        .dl-btn:hover { background: #e5e5e5; }
     </style>
 </head>
 <body>
 
-<h1>💬 Clean Square Chat Customizer</h1>
-<div class="subtitle">배경색, 말풍선, 글씨, 프로필 가림막까지 전부 다 따로 깔끔하게 적용됩니다!</div>
+<h1>💬 Pure Stable Chat Customizer</h1>
+<div class="subtitle">오류를 최소화하기 위해 글씨+말풍선을 통합하고, 멀티 가림막 확정 기능을 적용했습니다.</div>
 
 <div class="wrapper">
     <div class="panel">
         <label for="imageLoader" class="upload-btn">📁 대화 캡처 이미지 업로드</label>
         <input type="file" id="imageLoader" accept="image/*">
         
-        <div class="section-title">정사각형 & 외곽 여백 설정</div>
+        <div class="section-title">정사각형 & 외곽 마진</div>
         <div class="ctrl-row">
             <label>최소 추가 외곽 마진</label>
             <input type="range" id="marginRange" min="0" max="200" value="60">
@@ -67,48 +69,48 @@
             <input type="color" id="outerBg" value="#12121a">
         </div>
 
-        <div class="section-title">
-            <span>프로필 가림막 원 사용</span>
-            <label class="switch">
-                <input type="checkbox" id="useProfileMask" checked>
-                <span class="slider"></span>
-            </label>
+        <div class="section-title">자유로운 프로필 가림막 제어</div>
+        <div class="ctrl-row">
+            <label>추가할 가림막 크기</label>
+            <input type="range" id="maskSizeInput" min="20" max="150" value="65">
         </div>
-        <div id="profileControls">
-            <div class="ctrl-row" style="margin-bottom: 10px;">
-                <label>가림막 크기 조절</label>
-                <input type="range" id="profileSize" min="20" max="150" value="65">
-            </div>
-            <div class="ctrl-row">
-                <label>가림막 원 색상</label>
-                <input type="color" id="profileColor" value="#ff4a4a">
-            </div>
+        <div class="ctrl-row">
+            <label>가림막 원의 색상</label>
+            <input type="color" id="maskColorInput" value="#12121a">
         </div>
+        
+        <div class="btn-group">
+            <button class="btn" id="addMaskBtn">➕ 새 가림막 원 추가</button>
+            <button class="btn btn-success" id="lockMasksBtn">🔒 현재 위치로 가림막 확정</button>
+        </div>
+        <button class="btn btn-danger" id="clearMasksBtn" style="width: 100%;">🧹 가림막 전부 리셋</button>
 
-        <div class="section-title">내부 개별 색상 커스텀</div>
+        <div class="section-title">대화방 색상 변경 (안정성 최적화)</div>
         <div class="ctrl-row">
-            <label>이름 및 대화 글씨 색상</label>
-            <input type="color" id="chatText" value="#ffffff">
-        </div>
-        <div class="ctrl-row">
-            <label>대화 말풍선 색상</label>
-            <input type="color" id="bubbleBg" value="#3b3b4f">
+            <label>글씨 + 말풍선 색상</label>
+            <input type="color" id="contentColor" value="#ffffff">
         </div>
         <div class="ctrl-row">
             <label>대화창 내부 배경색</label>
-            <input type="color" id="chatBg" value="#1e1e24">
+            <input type="color" id="chatBg" value="#000000">
+        </div>
+        
+        <div class="tip-box">
+            <b>💡 멀티 가림막 가이드:</b><br>
+            1. <b>[새 가림막 추가]</b> 버튼으로 지우고 싶은 프로필 개수만큼 원을 만드세요.<br>
+            2. 마우스로 드래그해서 프로필 위에 딱 맞게 올려놓습니다.<br>
+            3. <b>[현재 위치로 가림막 확정]</b>을 누르면 주황색 조절 점선들이 깔끔하게 사라지며 최종 이미지에 고정됩니다!
         </div>
     </div>
 
     <div>
         <div class="preview-container">
-            <div class="placeholder" id="placeholder">이미지를 업로드하면 요소별로 색상이<br>정확히 분리된 1:1 결과물이 표시됩니다.</div>
+            <div class="placeholder" id="placeholder">이미지를 업로드하면 결과물 미리보기가 표시됩니다.</div>
             <div class="canvas-wrapper" id="canvasWrapper">
                 <canvas id="imageCanvas"></canvas>
-                <div id="profileMarker"></div>
             </div>
         </div>
-        <a id="downloadLink" class="dl-btn">✨ 나만의 커스텀 이미지 다운로드</a>
+        <a id="downloadLink" class="dl-btn">✨ 깔끔한 고화질 이미지 다운로드</a>
     </div>
 </div>
 
@@ -120,18 +122,15 @@
     const placeholder = document.getElementById('placeholder');
     const downloadLink = document.getElementById('downloadLink');
     
-    const marker = document.getElementById('profileMarker');
-    const useProfileMask = document.getElementById('useProfileMask');
-    const profileControls = document.getElementById('profileControls');
-    const profileSizeInput = document.getElementById('profileSize');
+    const addMaskBtn = document.getElementById('addMaskBtn');
+    const lockMasksBtn = document.getElementById('lockMasksBtn');
+    const clearMasksBtn = document.getElementById('clearMasksBtn');
+    const maskSizeInput = document.getElementById('maskSizeInput');
+    const maskColorInput = document.getElementById('maskColorInput');
 
     let originalImg = null;
-    let isDragging = false;
-    let startX, startY;
-    
-    // 주황색 조절 링의 초기 위치 비율 설정
-    let markerPctX = 0.16;
-    let markerPctY = 0.28;
+    let activeStickers = [];  // 현재 마우스로 움직이는 중인 가이드 스티커들
+    let permanentMasks = [];  // [확정]을 눌러 캔버스 이미지 내부로 박제된 가림막들
 
     imageLoader.addEventListener('change', (e) => {
         const file = e.target.files[0];
@@ -145,7 +144,11 @@
                 placeholder.style.display = 'none';
                 canvasWrapper.style.display = 'block';
                 downloadLink.style.display = 'block';
-                toggleMaskUI();
+                
+                removeAllStickerElements();
+                activeStickers = [];
+                permanentMasks = [];
+                
                 draw();
             };
             originalImg.src = event.target.result;
@@ -153,77 +156,132 @@
         reader.readAsDataURL(file);
     });
 
-    const controls = ['marginRange', 'outerBg', 'chatText', 'bubbleBg', 'chatBg', 'profileColor'];
+    const controls = ['marginRange', 'outerBg', 'contentColor', 'chatBg'];
     controls.forEach(id => document.getElementById(id).addEventListener('input', draw));
-    profileSizeInput.addEventListener('input', () => { updateMarkerSize(); draw(); });
-    useProfileMask.addEventListener('change', () => { toggleMaskUI(); draw(); });
+    
+    // 조작 중인 가이드 서클 색상 실시간 피드백
+    maskColorInput.addEventListener('input', () => {
+        const color = maskColorInput.value;
+        activeStickers.forEach(s => s.element.style.backgroundColor = color.replace('#', 'rgba(' + parseInt(color.slice(1,3),16) + ',' + parseInt(color.slice(3,5),16) + ',' + parseInt(color.slice(5,7),16) + ', 0.25)'));
+    });
 
-    function toggleMaskUI() {
-        if (useProfileMask.checked) {
-            profileControls.style.opacity = "1";
-            profileControls.style.pointerEvents = "auto";
-            marker.style.display = 'block';
-            updateMarkerSize();
-        } else {
-            profileControls.style.opacity = "0.3";
-            profileControls.style.pointerEvents = "none";
-            marker.style.display = 'none';
-        }
-    }
-
-    function updateMarkerSize() {
+    // 가림막 추가 로직
+    addMaskBtn.addEventListener('click', () => {
         if (!originalImg) return;
-        const size = profileSizeInput.value;
-        marker.style.width = size + 'px';
-        marker.style.height = size + 'px';
+        
+        const size = parseInt(maskSizeInput.value);
+        const color = maskColorInput.value;
+        
+        const el = document.createElement('div');
+        el.className = 'mask-sticker';
+        el.style.width = size + 'px';
+        el.style.height = size + 'px';
+        el.style.borderColor = color;
+        el.style.backgroundColor = 'rgba(' + parseInt(color.slice(1,3),16) + ',' + parseInt(color.slice(3,5),16) + ',' + parseInt(color.slice(5,7),16) + ', 0.25)';
         
         const rect = canvasWrapper.getBoundingClientRect();
-        marker.style.left = (rect.width * markerPctX - size/2) + 'px';
-        marker.style.top = (rect.height * markerPctY - size/2) + 'px';
+        const initPctX = 0.5;
+        const initPctY = 0.5;
+        el.style.left = (rect.width * initPctX) + 'px';
+        el.style.top = (rect.height * initPctY) + 'px';
+        
+        canvasWrapper.appendChild(el);
+        
+        const stickerObj = { element: el, pctX: initPctX, pctY: initPctY, size: size };
+        activeStickers.push(stickerObj);
+        makeElementDraggable(stickerObj);
+    });
+
+    // 가림막 위치 확정 (🔒 누르면 화면에서 조절 점선 가이드가 사라짐!)
+    lockMasksBtn.addEventListener('click', () => {
+        if (!originalImg || activeStickers.length === 0) return;
+
+        const rect = canvasWrapper.getBoundingClientRect();
+        const margin = parseInt(document.getElementById('marginRange').value);
+        const srcW = originalImg.width;
+        const srcH = originalImg.height;
+        const squareSize = Math.max(srcW, srcH) + (margin * 2);
+
+        activeStickers.forEach(sticker => {
+            const maskCanvasX = rect.width * sticker.pctX * (squareSize / rect.width);
+            const maskCanvasY = rect.height * sticker.pctY * (squareSize / rect.height);
+            const maskRadius = (sticker.size / 2) * (squareSize / rect.width);
+
+            permanentMasks.push({
+                x: maskCanvasX,
+                y: maskCanvasY,
+                r: maskRadius,
+                color: maskColorInput.value
+            });
+        });
+
+        // 가이드 스티커들을 화면(HTML DOM)에서 완벽히 소멸
+        removeAllStickerElements();
+        activeStickers = [];
+        
+        // 캔버스 자체에 영구 드로잉하기 위해 리드로우
+        draw();
+    });
+
+    clearMasksBtn.addEventListener('click', () => {
+        removeAllStickerElements();
+        activeStickers = [];
+        permanentMasks = [];
+        draw();
+    });
+
+    function removeAllStickerElements() {
+        document.querySelectorAll('.mask-sticker').forEach(el => el.remove());
     }
 
-    // 마커 마우스 드래그 로직 
-    marker.addEventListener('mousedown', (e) => {
-        isDragging = true;
-        startX = e.clientX - marker.offsetLeft;
-        startY = e.clientY - marker.offsetTop;
-        e.preventDefault();
-    });
+    // 드래그 앤 드롭 바인딩 함수
+    function makeElementDraggable(stickerObj) {
+        const el = stickerObj.element;
+        let isMoving = false;
+        let startX, startY;
 
-    document.addEventListener('mousemove', (e) => {
-        if (!isDragging) return;
-        const rect = canvasWrapper.getBoundingClientRect();
-        let newLeft = e.clientX - startX;
-        let newTop = e.clientY - startY;
-        marker.style.left = newLeft + 'px';
-        marker.style.top = newTop + 'px';
-        markerPctX = (newLeft + marker.offsetWidth / 2) / rect.width;
-        markerPctY = (newTop + marker.offsetHeight / 2) / rect.height;
-        draw();
-    });
+        el.addEventListener('mousedown', (e) => {
+            isMoving = true;
+            startX = e.clientX - el.offsetLeft;
+            startY = e.clientY - el.offsetTop;
+            e.preventDefault();
+        });
 
-    document.addEventListener('mouseup', () => { isDragging = false; });
+        document.addEventListener('mousemove', (e) => {
+            if (!isMoving) return;
+            const rect = canvasWrapper.getBoundingClientRect();
+            let newLeft = e.clientX - startX;
+            let newTop = e.clientY - startY;
 
-    // 모바일 터치 드래그 대응
-    marker.addEventListener('touchstart', (e) => {
-        isDragging = true;
-        const touch = e.touches[0];
-        startX = touch.clientX - marker.offsetLeft;
-        startY = touch.clientY - marker.offsetTop;
-    });
-    document.addEventListener('touchmove', (e) => {
-        if (!isDragging) return;
-        const rect = canvasWrapper.getBoundingClientRect();
-        const touch = e.touches[0];
-        let newLeft = touch.clientX - startX;
-        let newTop = touch.clientY - startY;
-        marker.style.left = newLeft + 'px';
-        marker.style.top = newTop + 'px';
-        markerPctX = (newLeft + marker.offsetWidth / 2) / rect.width;
-        markerPctY = (newTop + marker.offsetHeight / 2) / rect.height;
-        draw();
-    });
-    document.addEventListener('touchend', () => { isDragging = false; });
+            el.style.left = newLeft + 'px';
+            el.style.top = newTop + 'px';
+
+            stickerObj.pctX = newLeft / rect.width;
+            stickerObj.pctY = newTop / rect.height;
+        });
+
+        document.addEventListener('mouseup', () => { isMoving = false; });
+
+        // 터치 기기 지원
+        el.addEventListener('touchstart', (e) => {
+            isMoving = true;
+            const touch = e.touches[0];
+            startX = touch.clientX - el.offsetLeft;
+            startY = touch.clientY - el.offsetTop;
+        });
+        document.addEventListener('touchmove', (e) => {
+            if (!isMoving) return;
+            const rect = canvasWrapper.getBoundingClientRect();
+            const touch = e.touches[0];
+            let newLeft = touch.clientX - startX;
+            let newTop = touch.clientY - startY;
+            el.style.left = newLeft + 'px';
+            el.style.top = newTop + 'px';
+            stickerObj.pctX = newLeft / rect.width;
+            stickerObj.pctY = newTop / rect.height;
+        });
+        document.addEventListener('touchend', () => { isMoving = false; });
+    }
 
     function hexToRgb(hex) {
         return {
@@ -233,63 +291,55 @@
         };
     }
 
+    // --- 최적화된 2채널 드로우 코어 엔진 ---
     function draw() {
         if (!originalImg) return;
 
         const margin = parseInt(document.getElementById('marginRange').value);
         const oBgHex = document.getElementById('outerBg').value;
-        const cText = hexToRgb(document.getElementById('chatText').value);
-        const cBubble = hexToRgb(document.getElementById('bubbleBg').value);
+        const cContent = hexToRgb(document.getElementById('contentColor').value);
         const cBg = hexToRgb(document.getElementById('chatBg').value);
-        const pColorHex = document.getElementById('profileColor').value;
-        const isMaskActive = useProfileMask.checked;
 
         const srcW = originalImg.width;
         const srcH = originalImg.height;
         
-        // 1:1 비율 정사각형 캔버스 크기 수립
         const squareSize = Math.max(srcW, srcH) + (margin * 2);
         canvas.width = squareSize;
         canvas.height = squareSize;
 
-        // 1. 외부 여백 베이스 칠하기
+        // 1. 외부 정방형 배경 깔기
         ctx.fillStyle = oBgHex;
         ctx.fillRect(0, 0, squareSize, squareSize);
 
-        // 중앙 정렬을 위한 좌표 편차 계산
         const offsetX = (squareSize - srcW) / 2;
         const offsetY = (squareSize - srcH) / 2;
 
-        // 2. 내부 요소 추출을 위한 임시 가공용 캔버스 세팅
+        // 2. 가공용 서브 임시 캔버스 생성
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = srcW;
         tempCanvas.height = srcH;
         const tCtx = tempCanvas.getContext('2d');
         tCtx.drawImage(originalImg, 0, 0);
 
-        // 3. [초정밀 픽셀 분리 및 부드러운 하이브리드 블렌딩 연산]
+        // 3. [2채널 이진 명도 맵핑 공식] - 글씨+말풍선 vs 배경 분리 알고리즘
         const imgData = tCtx.getImageData(0, 0, srcW, srcH);
         const data = imgData.data;
 
         for (let i = 0; i < data.length; i += 4) {
             const r = data[i], g = data[i+1], b = data[i+2];
-            const brightness = 0.299 * r + 0.587 * g + 0.114 * b; // 명도 추출
+            const brightness = 0.299 * r + 0.587 * g + 0.114 * b; // 명도 계산
 
-            // 다크모드 전용 경계선 스무딩 보간 연산 규칙
-            if (brightness > 165) { 
-                // [글씨 영역] 밝은 픽셀 -> 유저가 설정한 글씨 색으로 치환
-                let f = (brightness - 165) / (255 - 165);
-                data[i]   = cBubble.r + (cText.r - cBubble.r) * f;
-                data[i+1] = cBubble.g + (cText.g - cBubble.g) * f;
-                data[i+2] = cBubble.b + (cText.b - cBubble.b) * f;
-            } else if (brightness > 28 && brightness <= 165) { 
-                // [말풍선 영역] 중간 톤 회색 -> 말풍선 색으로 스무스하게 틴팅
-                let f = (brightness - 28) / (165 - 28);
-                data[i]   = cBg.r + (cBubble.r - cBg.r) * f;
-                data[i+1] = cBg.g + (cBubble.g - cBg.g) * f;
-                data[i+2] = cBg.b + (cBubble.b - cBg.b) * f;
+            // 다크모드 캡처 데이터 완벽 대응 
+            // 배경 분리 문턱값(Threshold 28)을 기준으로 이상은 전부 [콘텐츠 영역], 이하는 [배경 영역]으로 스무스 보간
+            if (brightness > 28) { 
+                // 글씨 및 말풍선 영역 (하나로 통합하여 오류 및 얼룩 원천 차단)
+                let f = (brightness - 28) / (255 - 28);
+                // 명도의 그라데이션 결을 부드럽게 유지하면서 색상 주입
+                data[i]   = cBg.r + (cContent.r - cBg.r) * f;
+                data[i+1] = cBg.g + (cContent.g - cBg.g) * f;
+                data[i+2] = cBg.b + (cContent.b - cBg.b) * f;
             } else { 
-                // [대화창 배경 영역] 완전 어두운 곳 -> 설정한 대화창 배경색 적용
+                // 대화방 순수 배경 영역
                 let f = brightness / 28;
                 data[i]   = cBg.r * f;
                 data[i+1] = cBg.g * f;
@@ -298,30 +348,31 @@
         }
         tCtx.putImageData(imgData, 0, 0);
 
-        // 4. 가공된 대화 이미지를 메인 정중앙에 전송
+        // 4. 중앙에 원본 가공 대화창 얹기
         ctx.drawImage(tempCanvas, offsetX, offsetY);
 
-        // 5. 드래그 링 위치와 100% 동기화된 프로필 가림막 독립 레이어 렌더링
-        if (isMaskActive) {
-            const rect = canvasWrapper.getBoundingClientRect();
-            
-            // 프리뷰상 마커 위치를 고해상도 캔버스 해상도에 맞춰 정밀 스케일링 계산
-            const maskCanvasX = rect.width * markerPctX * (squareSize / rect.width);
-            const maskCanvasY = rect.height * markerPctY * (squareSize / rect.height);
-            const maskRadius = (parseInt(profileSizeInput.value) / 2) * (squareSize / rect.width);
-
-            ctx.fillStyle = pColorHex;
+        // 5. [확정된 멀티 가림막 그리기]
+        // 유저가 가이드 스티커를 맞추고 🔒를 누른 순간, 이 리스트에 들어가며 점선 없이 깔끔한 단색 원으로 각인됩니다.
+        permanentMasks.forEach(mask => {
+            ctx.fillStyle = mask.color;
             ctx.beginPath();
-            ctx.arc(maskCanvasX, maskCanvasY, maskRadius, 0, Math.PI * 2);
+            ctx.arc(mask.x, mask.y, mask.r, 0, Math.PI * 2);
             ctx.fill();
-        }
+        });
 
-        // 6. 다운로드 내보내기 활성화
+        // 6. 고화질 파일 다운로드 링크 생성
         downloadLink.href = canvas.toDataURL('image/png');
-        downloadLink.download = 'clean_separate_chat.png';
+        downloadLink.download = 'clean_stable_chat.png';
     }
 
-    window.addEventListener('resize', updateMarkerSize);
+    window.addEventListener('resize', () => {
+        if(!originalImg) return;
+        const rect = canvasWrapper.getBoundingClientRect();
+        activeStickers.forEach(s => {
+            s.element.style.left = (rect.width * s.pctX) + 'px';
+            s.element.style.top = (rect.height * s.pctY) + 'px';
+        });
+    });
 </script>
 
 </body>
