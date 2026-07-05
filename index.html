@@ -2,44 +2,45 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Chat Customizer</title>
     <style>
         :root { --bg: #14141b; --panel: #1f1f2e; --text: #ffffff; --sub: #8f8fa3; --accent: #4f46e5; }
-        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 30px 15px; display: flex; flex-direction: column; align-items: center; }
-        h1 { font-size: 1.8rem; margin-bottom: 5px; font-weight: 800; letter-spacing: -0.5px; }
-        .subtitle { color: var(--sub); font-size: 0.95rem; margin-bottom: 25px; text-align: center; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px 15px; display: flex; flex-direction: column; align-items: center; }
+        h1 { font-size: 1.6rem; margin-bottom: 5px; font-weight: 800; letter-spacing: -0.5px; text-align: center; }
+        .subtitle { color: var(--sub); font-size: 0.9rem; margin-bottom: 25px; text-align: center; line-height: 1.4; }
         .wrapper { max-width: 1100px; width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
         @media (max-width: 850px) { .wrapper { grid-template-columns: 1fr; } }
         
-        .panel { background: var(--panel); padding: 25px; border-radius: 16px; display: flex; flex-direction: column; gap: 18px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-        .section-title { font-size: 1rem; font-weight: 700; color: #fff; border-left: 4px solid var(--accent); padding-left: 8px; margin: 5px 0; display: flex; justify-content: space-between; align-items: center;}
+        .panel { background: var(--panel); padding: 20px; border-radius: 16px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .section-title { font-size: 0.95rem; font-weight: 700; color: #fff; border-left: 4px solid var(--accent); padding-left: 8px; margin: 5px 0; display: flex; justify-content: space-between; align-items: center;}
         
-        .upload-btn { background: #ffffff; color: #000000; padding: 14px; border-radius: 10px; text-align: center; cursor: pointer; font-weight: bold; display: block; transition: background 0.2s; }
+        .upload-btn { background: #ffffff; color: #000000; padding: 14px; border-radius: 10px; text-align: center; cursor: pointer; font-weight: bold; display: block; transition: background 0.2s; font-size: 0.95rem; }
         .upload-btn:hover { background: #e5e5e5; }
         input[type="file"] { display: none; }
         
         .ctrl-row { display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.2); padding: 12px; border-radius: 10px; }
-        label { font-size: 0.9rem; color: var(--sub); font-weight: 500; }
+        label { font-size: 0.85rem; color: var(--sub); font-weight: 500; }
         
-        input[type="color"] { border: none; width: 32px; height: 32px; cursor: pointer; background: none; -webkit-appearance: none; }
+        input[type="color"] { border: none; width: 35px; height: 35px; cursor: pointer; background: none; -webkit-appearance: none; }
         input[type="color"]::-webkit-color-swatch { border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); }
-        input[type="range"] { width: 55%; accent-color: var(--accent); }
+        input[type="range"] { width: 55%; accent-color: var(--accent); height: 8px; }
         
         .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .btn { background: var(--accent); color: white; border: none; padding: 11px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.88rem; transition: background 0.2s; }
+        .btn { background: var(--accent); color: white; border: none; padding: 13px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.9rem; transition: background 0.2s; -webkit-tap-highlight-color: transparent; }
         .btn:hover { background: #6366f1; }
         .btn-success { background: #10b981; }
         .btn-success:hover { background: #059669; }
         .btn-danger { background: #ef4444; }
         .btn-danger:hover { background: #dc2626; }
 
-        .preview-container { background: #0b0b0f; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 450px; border: 2px dashed #2a2a3a; position: relative; }
+        .preview-container { background: #0b0b0f; border-radius: 16px; padding: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; border: 2px dashed #2a2a3a; position: relative; }
         
-        .canvas-wrapper { position: relative; display: none; max-width: 100%; max-height: 65vh; box-shadow: 0 20px 40px rgba(0,0,0,0.6); overflow: hidden; }
-        canvas { display: block; max-width: 100%; max-height: 65vh; object-fit: contain; }
+        /* 모바일 스크롤 꿀렁임 및 강제 확대 현상 방지 패치 */
+        .canvas-wrapper { position: relative; display: none; max-width: 100%; max-height: 70vh; box-shadow: 0 20px 40px rgba(0,0,0,0.6); overflow: hidden; touch-action: none; }
+        canvas { display: block; max-width: 100%; max-height: 70vh; object-fit: contain; }
         
-        /* 💡 핵심 수정: 조작 중인 가이드 사각형은 배경색이 무엇이든 무조건 강렬한 주황색 점선으로 고정 */
+        /* 💡 모바일 가림막 스티커 스타일 개선 (터치 스크롤 차단 및 개별 삭제 버튼 탑재) */
         .mask-sticker { 
             position: absolute; 
             border: 3px dashed #ff5500 !important; 
@@ -49,18 +50,43 @@
             box-sizing: border-box; 
             transform: translate(-50%, -50%); 
             box-shadow: 0 0 10px rgba(255, 85, 0, 0.5);
+            touch-action: none; /* 터치 시 화면 스크롤 방지 */
+        }
+        .mask-sticker.selected {
+            border: 3px dashed #00ffcc !important;
+            box-shadow: 0 0 12px rgba(0, 255, 204, 0.8);
+        }
+        /* 개별 삭제 버튼 */
+        .mask-close-btn {
+            position: absolute;
+            top: -12px;
+            right: -12px;
+            width: 22px;
+            height: 22px;
+            background: #ef4444;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            z-index: 12;
+            user-select: none;
         }
         
-        .placeholder { color: var(--sub); text-align: center; font-size: 0.95rem; line-height: 1.5; }
-        .tip-box { font-size: 0.82rem; color: #a5b4fc; background: rgba(79, 70, 229, 0.15); padding: 12px; border-radius: 8px; border: 1px solid rgba(79, 70, 229, 0.3); line-height: 1.45; }
+        .placeholder { color: var(--sub); text-align: center; font-size: 0.9rem; line-height: 1.5; padding: 0 20px; }
+        .tip-box { font-size: 0.8rem; color: #a5b4fc; background: rgba(79, 70, 229, 0.15); padding: 12px; border-radius: 8px; border: 1px solid rgba(79, 70, 229, 0.3); line-height: 1.5; }
         
-        .dl-btn { background: #ffffff; color: #000000; padding: 16px; border-radius: 12px; text-align: center; text-decoration: none; font-weight: bold; margin-top: 15px; width: 100%; display: none; box-sizing: border-box; font-size: 1.05rem; box-shadow: 0 4px 15px rgba(255,255,255,0.1); }
+        .dl-btn { background: #ffffff; color: #000000; padding: 16px; border-radius: 12px; text-align: center; text-decoration: none; font-weight: bold; margin-top: 15px; width: 100%; display: none; box-sizing: border-box; font-size: 1rem; box-shadow: 0 4px 15px rgba(255,255,255,0.1); -webkit-tap-highlight-color: transparent; }
         .dl-btn:hover { background: #e5e5e5; }
     </style>
 </head>
 <body>
 
-<h1>💬 Chat Customizer</h1>
+<h1>Chat Customizer</h1>
 <div class="subtitle">가림막과 배경색은 무조건 동일하게.</div>
 
 <div class="wrapper">
@@ -81,11 +107,11 @@
         <div class="section-title">자유로운 사각형 가림막 (사각형 추가 후 드래그로 사용 가능)</div>
         <div class="ctrl-row">
             <label>가림막 가로(너비)</label>
-            <input type="range" id="maskWidthInput" min="20" max="300" value="70">
+            <input type="range" id="maskWidthInput" min="20" max="350" value="90">
         </div>
         <div class="ctrl-row">
             <label>가림막 세로(높이)</label>
-            <input type="range" id="maskHeightInput" min="10" max="150" value="40">
+            <input type="range" id="maskHeightInput" min="10" max="200" value="45">
         </div>
         <div class="ctrl-row">
             <label>확정 후 적용될 가림막 색상</label>
@@ -109,9 +135,10 @@
         </div>
         
         <div class="tip-box">
-            <b>💡 가시성 개선 가이드:</b><br>
-            * 추가된 가림막은 편집 중에 <b>무조건 선명한 주황색 점선</b>으로 강조되어 찾기 쉽습니다.<br>
-            * 배치를 마치고 <b>[🔒 현재 위치로 확정]</b>을 누르면 주황색 점선은 완전히 사라지고 지정하신 가림막 색상으로 자연스럽게 가려집니다.
+            <b>📱 모바일 조작 팁:</b><br>
+            * 가림막 사각형을 드래그해도 화면이 위아래로 흔들리지 않습니다.<br>
+            * 여러 사각형 중 하나를 터치하면 <b>하늘색 테두리</b>로 선택되며, 그 상태에서 위의 가로/세로 슬라이더를 움직이면 크기가 실시간으로 조절됩니다.<br>
+            * 잘못 만든 사각형은 모서리의 <b>❌ 버튼</b>을 누르면 즉시 지워집니다.
         </div>
     </div>
 
@@ -122,7 +149,7 @@
                 <canvas id="imageCanvas"></canvas>
             </div>
         </div>
-        <a id="downloadLink" class="dl-btn">✨ 이미지 다운로드</a>
+        <a id="downloadLink" class="dl-btn">✨이미지 다운로드</a>
     </div>
 </div>
 
@@ -142,8 +169,9 @@
     const maskColorInput = document.getElementById('maskColorInput');
 
     let originalImg = null;
-    let activeStickers = [];  // 현재 드래그 중인 주황색 가이드 스티커들
-    let permanentMasks = [];  // 확정되어 최종 본판에 주황색 없이 박제될 사각형 데이터들
+    let activeStickers = [];  
+    let permanentMasks = [];  
+    let selectedSticker = null; // 현재 조작/크기변경 대상으로 선택된 스티커 객체
 
     imageLoader.addEventListener('change', (e) => {
         const file = e.target.files[0];
@@ -161,6 +189,7 @@
                 removeAllStickerElements();
                 activeStickers = [];
                 permanentMasks = [];
+                selectedSticker = null;
                 
                 draw();
             };
@@ -172,6 +201,31 @@
     const controls = ['marginRange', 'outerBg', 'contentColor', 'chatBg'];
     controls.forEach(id => document.getElementById(id).addEventListener('input', draw));
 
+    // 슬라이더 조절 시 현재 선택된 스티커 크기 실시간 변경 기능 추가
+    maskWidthInput.addEventListener('input', () => {
+        if (selectedSticker) {
+            selectedSticker.w = parseInt(maskWidthInput.value);
+            selectedSticker.element.style.width = selectedSticker.w + 'px';
+        }
+    });
+    maskHeightInput.addEventListener('input', () => {
+        if (selectedSticker) {
+            selectedSticker.h = parseInt(maskHeightInput.value);
+            selectedSticker.element.style.height = selectedSticker.h + 'px';
+        }
+    });
+
+    function selectSticker(stickerObj) {
+        activeStickers.forEach(s => s.element.classList.remove('selected'));
+        selectedSticker = stickerObj;
+        if (stickerObj) {
+            stickerObj.element.classList.add('selected');
+            // 슬라이더 값을 선택된 스티커 원래 크기로 동기화
+            maskWidthInput.value = stickerObj.w;
+            maskHeightInput.value = stickerObj.h;
+        }
+    }
+
     // 사각형 가림막 추가 로직
     addMaskBtn.addEventListener('click', () => {
         if (!originalImg) return;
@@ -179,11 +233,16 @@
         const width = parseInt(maskWidthInput.value);
         const height = parseInt(maskHeightInput.value);
         
-        // 가이드 스티커 생성 (CSS에서 무조건 주황색 점선 및 반투명 주황 채우기로 박아두었습니다)
         const el = document.createElement('div');
         el.className = 'mask-sticker';
         el.style.width = width + 'px';
         el.style.height = height + 'px';
+        
+        // 개별 삭제용 X 버튼 생성
+        const closeBtn = document.createElement('div');
+        closeBtn.className = 'mask-close-btn';
+        closeBtn.innerText = '×';
+        el.appendChild(closeBtn);
         
         const rect = canvasWrapper.getBoundingClientRect();
         const initPctX = 0.5;
@@ -195,7 +254,19 @@
         
         const stickerObj = { element: el, pctX: initPctX, pctY: initPctY, w: width, h: height };
         activeStickers.push(stickerObj);
+        
+        // X 버튼 이벤트 바인딩
+        closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // 드래그 이벤트 전파 방지
+            el.remove();
+            activeStickers = activeStickers.filter(s => s !== stickerObj);
+            if (selectedSticker === stickerObj) {
+                selectSticker(activeStickers[activeStickers.length - 1] || null);
+            }
+        });
+
         makeElementDraggable(stickerObj);
+        selectSticker(stickerObj);
     });
 
     // 사각형 위치 확정 로직 (🔒 버튼)
@@ -209,14 +280,12 @@
         const squareSize = Math.max(srcW, srcH) + (margin * 2);
 
         activeStickers.forEach(sticker => {
-            // 현재 주황 가이드의 위치를 최종 고해상도 캔버스 크기에 비례하게 좌표 매핑
             const maskCanvasX = rect.width * sticker.pctX * (squareSize / rect.width);
             const maskCanvasY = rect.height * sticker.pctY * (squareSize / rect.height);
             
             const canvasW = sticker.w * (squareSize / rect.width);
             const canvasH = sticker.h * (squareSize / rect.width);
 
-            // 주황색 요소 정보는 다 버리고, 사용자가 설정한 순수 마스크 컬러만 배열로 이관
             permanentMasks.push({
                 x: maskCanvasX - canvasW / 2, 
                 y: maskCanvasY - canvasH / 2,
@@ -226,11 +295,10 @@
             });
         });
 
-        // 주황색 가이드용 엘리먼트 화면에서 흔적도 없이 삭제
         removeAllStickerElements();
         activeStickers = [];
+        selectedSticker = null;
         
-        // 주황색 없이 깨끗한 최종본 드로잉
         draw();
     });
 
@@ -238,6 +306,7 @@
         removeAllStickerElements();
         activeStickers = [];
         permanentMasks = [];
+        selectedSticker = null;
         draw();
     });
 
@@ -245,52 +314,61 @@
         document.querySelectorAll('.mask-sticker').forEach(el => el.remove());
     }
 
-    // 마우스 및 터치 드래그 연동
+    // 마우스 및 터치 드래그 완벽 모바일 대응 연동
     function makeElementDraggable(stickerObj) {
         const el = stickerObj.element;
         let isMoving = false;
         let startX, startY;
 
-        el.addEventListener('mousedown', (e) => {
+        // 터치/클릭 시 선택 상태로 변경
+        const onStart = (clientX, clientY) => {
             isMoving = true;
-            startX = e.clientX - el.offsetLeft;
-            startY = e.clientY - el.offsetTop;
+            selectSticker(stickerObj);
+            startX = clientX - el.offsetLeft;
+            startY = clientY - el.offsetTop;
+        };
+
+        const onMove = (clientX, clientY) => {
+            if (!isMoving) return;
+            const rect = canvasWrapper.getBoundingClientRect();
+            let newLeft = clientX - startX;
+            let newTop = clientY - startY;
+
+            // 프리뷰 영역 안에서만 움직이도록 미세 제한 가능 (원할 경우 추가)
+            el.style.left = newLeft + 'px';
+            el.style.top = newTop + 'px';
+
+            stickerObj.pctX = newLeft / rect.width;
+            stickerObj.pctY = newTop / rect.height;
+        };
+
+        const onEnd = () => { isMoving = false; };
+
+        // PC 마우스 이벤트
+        el.addEventListener('mousedown', (e) => {
+            if(e.target.classList.contains('mask-close-btn')) return;
+            onStart(e.clientX, e.clientY);
             e.preventDefault();
         });
+        document.addEventListener('mousemove', (e) => { onMove(e.clientX, e.clientY); });
+        document.addEventListener('mouseup', onEnd);
 
-        document.addEventListener('mousemove', (e) => {
-            if (!isMoving) return;
-            const rect = canvasWrapper.getBoundingClientRect();
-            let newLeft = e.clientX - startX;
-            let newTop = e.clientY - startY;
-
-            el.style.left = newLeft + 'px';
-            el.style.top = newTop + 'px';
-
-            stickerObj.pctX = newLeft / rect.width;
-            stickerObj.pctY = newTop / rect.height;
-        });
-
-        document.addEventListener('mouseup', () => { isMoving = false; });
-
+        // 모바일 터치 이벤트 (Passive: false 설정하여 브라우저 스크롤 완벽 차단)
         el.addEventListener('touchstart', (e) => {
-            isMoving = true;
+            if(e.target.classList.contains('mask-close-btn')) return;
             const touch = e.touches[0];
-            startX = touch.clientX - el.offsetLeft;
-            startY = touch.clientY - el.offsetTop;
-        });
+            onStart(touch.clientX, touch.clientY);
+        }, { passive: true });
+
         document.addEventListener('touchmove', (e) => {
             if (!isMoving) return;
-            const rect = canvasWrapper.getBoundingClientRect();
+            // 스티커 조작 중에는 배경 본문이 스크롤되는 것을 강제로 막음
+            if (e.cancelable) e.preventDefault(); 
             const touch = e.touches[0];
-            let newLeft = touch.clientX - startX;
-            let newTop = touch.clientY - startY;
-            el.style.left = newLeft + 'px';
-            el.style.top = newTop + 'px';
-            stickerObj.pctX = newLeft / rect.width;
-            stickerObj.pctY = newTop / rect.height;
-        });
-        document.addEventListener('touchend', () => { isMoving = false; });
+            onMove(touch.clientX, touch.clientY);
+        }, { passive: false });
+
+        document.addEventListener('touchend', onEnd);
     }
 
     function hexToRgb(hex) {
@@ -301,7 +379,7 @@
         };
     }
 
-    // 캔버스 2채널 드로우 코어 엔진
+    // 캔버스 드로우 엔진
     function draw() {
         if (!originalImg) return;
 
@@ -352,7 +430,7 @@
 
         ctx.drawImage(tempCanvas, offsetX, offsetY);
 
-        // [확정된 사각형 그리기] - 여기서는 주황색 요소가 전혀 없고 사용자가 설정한 색상으로만 매끄럽게 사각형을 그립니다.
+        // 확정된 사각형 드로잉
         permanentMasks.forEach(mask => {
             ctx.fillStyle = mask.color;
             ctx.fillRect(mask.x, mask.y, mask.w, mask.h);
