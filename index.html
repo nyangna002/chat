@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ultimate Chat Color Customizer</title>
+    <title>Perfect Separate Color Customizer</title>
     <style>
         :root { --bg: #14141b; --panel: #1f1f2e; --text: #ffffff; --sub: #8f8fa3; --accent: #4f46e5; }
         body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 30px 15px; display: flex; flex-direction: column; align-items: center; }
@@ -38,6 +38,7 @@
         .canvas-wrapper { position: relative; display: none; max-width: 100%; max-height: 65vh; box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
         canvas { display: block; max-width: 100%; max-height: 65vh; object-fit: contain; }
         
+        /* 움직이는 주황색 조절 서클 */
         #profileMarker { position: absolute; border: 2px dashed #ff5500; background: rgba(255, 85, 0, 0.2); border-radius: 50%; display: none; cursor: move; z-index: 10; box-sizing: border-box; }
         
         .placeholder { color: var(--sub); text-align: center; font-size: 0.95rem; line-height: 1.5; }
@@ -48,26 +49,26 @@
 </head>
 <body>
 
-<h1>💬 Seamless Chat Customizer</h1>
-<div class="subtitle">얼룩덜룩함 제로! 포토샵 블렌딩 기법으로 다크모드 색상을 균일하게 입힙니다.</div>
+<h1>💬 Clean Square Chat Customizer</h1>
+<div class="subtitle">배경색, 말풍선, 글씨, 프로필 가림막까지 전부 다 따로 깔끔하게 적용됩니다!</div>
 
 <div class="wrapper">
     <div class="panel">
         <label for="imageLoader" class="upload-btn">📁 대화 캡처 이미지 업로드</label>
         <input type="file" id="imageLoader" accept="image/*">
         
-        <div class="section-title">정사각형 & 여백 설정</div>
+        <div class="section-title">정사각형 & 외곽 여백 설정</div>
         <div class="ctrl-row">
             <label>최소 추가 외곽 마진</label>
             <input type="range" id="marginRange" min="0" max="200" value="60">
         </div>
         <div class="ctrl-row">
             <label>외부 정사각형 배경색</label>
-            <input type="color" id="outerBg" value="#000000">
+            <input type="color" id="outerBg" value="#12121a">
         </div>
 
         <div class="section-title">
-            <span>프로필 가림막 사용</span>
+            <span>프로필 가림막 원 사용</span>
             <label class="switch">
                 <input type="checkbox" id="useProfileMask" checked>
                 <span class="slider"></span>
@@ -75,35 +76,39 @@
         </div>
         <div id="profileControls">
             <div class="ctrl-row" style="margin-bottom: 10px;">
-                <label>가림막 크기</label>
-                <input type="range" id="profileSize" min = "20" max="150" value="65">
+                <label>가림막 크기 조절</label>
+                <input type="range" id="profileSize" min="20" max="150" value="65">
             </div>
             <div class="ctrl-row">
-                <label>가림막 색상</label>
-                <input type="color" id="profileColor" value="#000000">
+                <label>가림막 원 색상</label>
+                <input type="color" id="profileColor" value="#ff4a4a">
             </div>
         </div>
 
-        <div class="section-title">전체 톤 틴트 (Tint) 필터 설정</div>
+        <div class="section-title">내부 개별 색상 커스텀</div>
         <div class="ctrl-row">
-            <label>대화창 오버레이 색상</label>
-            <input type="color" id="tintColor" value="#ff0000">
+            <label>이름 및 대화 글씨 색상</label>
+            <input type="color" id="chatText" value="#ffffff">
         </div>
         <div class="ctrl-row">
-            <label>색상 강도 조절 (블렌딩)</label>
-            <input type="range" id="tintIntensity" min="1" max="100" value="80">
+            <label>대화 말풍선 색상</label>
+            <input type="color" id="bubbleBg" value="#3b3b4f">
+        </div>
+        <div class="ctrl-row">
+            <label>대화창 내부 배경색</label>
+            <input type="color" id="chatBg" value="#1e1e24">
         </div>
     </div>
 
     <div>
         <div class="preview-container">
-            <div class="placeholder" id="placeholder">이미지를 업로드하면 얼룩 없는<br>1:1 정사각형 결과물이 표시됩니다.</div>
+            <div class="placeholder" id="placeholder">이미지를 업로드하면 요소별로 색상이<br>정확히 분리된 1:1 결과물이 표시됩니다.</div>
             <div class="canvas-wrapper" id="canvasWrapper">
                 <canvas id="imageCanvas"></canvas>
                 <div id="profileMarker"></div>
             </div>
         </div>
-        <a id="downloadLink" class="dl-btn">✨ 깔끔한 고화질 이미지 다운로드</a>
+        <a id="downloadLink" class="dl-btn">✨ 나만의 커스텀 이미지 다운로드</a>
     </div>
 </div>
 
@@ -124,7 +129,8 @@
     let isDragging = false;
     let startX, startY;
     
-    let markerPctX = 0.15;
+    // 주황색 조절 링의 초기 위치 비율 설정
+    let markerPctX = 0.16;
     let markerPctY = 0.28;
 
     imageLoader.addEventListener('change', (e) => {
@@ -139,7 +145,6 @@
                 placeholder.style.display = 'none';
                 canvasWrapper.style.display = 'block';
                 downloadLink.style.display = 'block';
-                
                 toggleMaskUI();
                 draw();
             };
@@ -148,7 +153,7 @@
         reader.readAsDataURL(file);
     });
 
-    const controls = ['marginRange', 'outerBg', 'tintColor', 'tintIntensity', 'profileColor'];
+    const controls = ['marginRange', 'outerBg', 'chatText', 'bubbleBg', 'chatBg', 'profileColor'];
     controls.forEach(id => document.getElementById(id).addEventListener('input', draw));
     profileSizeInput.addEventListener('input', () => { updateMarkerSize(); draw(); });
     useProfileMask.addEventListener('change', () => { toggleMaskUI(); draw(); });
@@ -177,7 +182,7 @@
         marker.style.top = (rect.height * markerPctY - size/2) + 'px';
     }
 
-    // 드래그 로직 
+    // 마커 마우스 드래그 로직 
     marker.addEventListener('mousedown', (e) => {
         isDragging = true;
         startX = e.clientX - marker.offsetLeft;
@@ -199,7 +204,7 @@
 
     document.addEventListener('mouseup', () => { isDragging = false; });
 
-    // 모바일 터치
+    // 모바일 터치 드래그 대응
     marker.addEventListener('touchstart', (e) => {
         isDragging = true;
         const touch = e.touches[0];
@@ -220,56 +225,87 @@
     });
     document.addEventListener('touchend', () => { isDragging = false; });
 
+    function hexToRgb(hex) {
+        return {
+            r: parseInt(hex.slice(1, 3), 16),
+            g: parseInt(hex.slice(3, 5), 16),
+            b: parseInt(hex.slice(5, 7), 16)
+        };
+    }
+
     function draw() {
         if (!originalImg) return;
 
         const margin = parseInt(document.getElementById('marginRange').value);
         const oBgHex = document.getElementById('outerBg').value;
-        const tintColor = document.getElementById('tintColor').value;
-        const intensity = parseInt(document.getElementById('tintIntensity').value) / 100;
+        const cText = hexToRgb(document.getElementById('chatText').value);
+        const cBubble = hexToRgb(document.getElementById('bubbleBg').value);
+        const cBg = hexToRgb(document.getElementById('chatBg').value);
         const pColorHex = document.getElementById('profileColor').value;
         const isMaskActive = useProfileMask.checked;
 
         const srcW = originalImg.width;
         const srcH = originalImg.height;
         
+        // 1:1 비율 정사각형 캔버스 크기 수립
         const squareSize = Math.max(srcW, srcH) + (margin * 2);
         canvas.width = squareSize;
         canvas.height = squareSize;
 
-        // 1. 외부 기본 배경 도포
+        // 1. 외부 여백 베이스 칠하기
         ctx.fillStyle = oBgHex;
         ctx.fillRect(0, 0, squareSize, squareSize);
 
+        // 중앙 정렬을 위한 좌표 편차 계산
         const offsetX = (squareSize - srcW) / 2;
         const offsetY = (squareSize - srcH) / 2;
 
-        // 2. 고화질 렌더링용 임시 캔버스 가공
+        // 2. 내부 요소 추출을 위한 임시 가공용 캔버스 세팅
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = srcW;
         tempCanvas.height = srcH;
         const tCtx = tempCanvas.getContext('2d');
-        
-        // 원본 대화 이미지 그리기
         tCtx.drawImage(originalImg, 0, 0);
 
-        // 3. [핵심 변경] 그래픽 블렌딩 모드를 이용한 완벽한 색상 주입
-        // 이 모드는 기존 말풍선 내부의 그라데이션과 픽셀 차이를 깨지 않고 '색상 톤만 고르게 변경'해 줍니다.
-        tCtx.globalCompositeOperation = "color";
-        tCtx.fillStyle = tintColor;
-        tCtx.globalAlpha = intensity;
-        tCtx.fillRect(0, 0, srcW, srcH);
-        
-        // 투명도 및 합성 모드 원상 복구
-        tCtx.globalCompositeOperation = "source-over";
-        tCtx.globalAlpha = 1.0;
+        // 3. [초정밀 픽셀 분리 및 부드러운 하이브리드 블렌딩 연산]
+        const imgData = tCtx.getImageData(0, 0, srcW, srcH);
+        const data = imgData.data;
 
-        // 4. 가공된 대화창을 중앙 레이아웃에 안착
+        for (let i = 0; i < data.length; i += 4) {
+            const r = data[i], g = data[i+1], b = data[i+2];
+            const brightness = 0.299 * r + 0.587 * g + 0.114 * b; // 명도 추출
+
+            // 다크모드 전용 경계선 스무딩 보간 연산 규칙
+            if (brightness > 165) { 
+                // [글씨 영역] 밝은 픽셀 -> 유저가 설정한 글씨 색으로 치환
+                let f = (brightness - 165) / (255 - 165);
+                data[i]   = cBubble.r + (cText.r - cBubble.r) * f;
+                data[i+1] = cBubble.g + (cText.g - cBubble.g) * f;
+                data[i+2] = cBubble.b + (cText.b - cBubble.b) * f;
+            } else if (brightness > 28 && brightness <= 165) { 
+                // [말풍선 영역] 중간 톤 회색 -> 말풍선 색으로 스무스하게 틴팅
+                let f = (brightness - 28) / (165 - 28);
+                data[i]   = cBg.r + (cBubble.r - cBg.r) * f;
+                data[i+1] = cBg.g + (cBubble.g - cBg.g) * f;
+                data[i+2] = cBg.b + (cBubble.b - cBg.b) * f;
+            } else { 
+                // [대화창 배경 영역] 완전 어두운 곳 -> 설정한 대화창 배경색 적용
+                let f = brightness / 28;
+                data[i]   = cBg.r * f;
+                data[i+1] = cBg.g * f;
+                data[i+2] = cBg.b * f;
+            }
+        }
+        tCtx.putImageData(imgData, 0, 0);
+
+        // 4. 가공된 대화 이미지를 메인 정중앙에 전송
         ctx.drawImage(tempCanvas, offsetX, offsetY);
 
-        // 5. 정확하게 정렬된 수동 프로필 가림막 얹기
+        // 5. 드래그 링 위치와 100% 동기화된 프로필 가림막 독립 레이어 렌더링
         if (isMaskActive) {
             const rect = canvasWrapper.getBoundingClientRect();
+            
+            // 프리뷰상 마커 위치를 고해상도 캔버스 해상도에 맞춰 정밀 스케일링 계산
             const maskCanvasX = rect.width * markerPctX * (squareSize / rect.width);
             const maskCanvasY = rect.height * markerPctY * (squareSize / rect.height);
             const maskRadius = (parseInt(profileSizeInput.value) / 2) * (squareSize / rect.width);
@@ -280,9 +316,9 @@
             ctx.fill();
         }
 
-        // 6. 저장 경로 설정
+        // 6. 다운로드 내보내기 활성화
         downloadLink.href = canvas.toDataURL('image/png');
-        downloadLink.download = 'perfect_blended_chat.png';
+        downloadLink.download = 'clean_separate_chat.png';
     }
 
     window.addEventListener('resize', updateMarkerSize);
