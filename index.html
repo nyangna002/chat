@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smooth High-Res Chat Customizer</title>
+    <title>Square Chat Customizer (Manual De-identification)</title>
     <style>
         :root { --bg: #14141b; --panel: #1f1f2e; --text: #ffffff; --sub: #8f8fa3; --accent: #4f46e5; }
         body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 30px 15px; display: flex; flex-direction: column; align-items: center; }
-        h1 { font-size: 1.8rem; margin-bottom: 25px; font-weight: 800; letter-spacing: -0.5px; }
+        h1 { font-size: 1.8rem; margin-bottom: 5px; font-weight: 800; letter-spacing: -0.5px; }
+        .subtitle { color: var(--sub); font-size: 0.95rem; margin-bottom: 25px; text-align: center; }
         .wrapper { max-width: 1100px; width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
         @media (max-width: 850px) { .wrapper { grid-template-columns: 1fr; } }
         
@@ -26,16 +27,17 @@
         input[type="color"]::-webkit-color-swatch { border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); }
         input[type="range"] { width: 55%; accent-color: var(--accent); }
         
-        .switch { position: relative; display: inline-block; width: 44px; height: 22px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #444; transition: .3s; border-radius: 22px; }
-        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
-        input:checked + .slider { background-color: var(--accent); }
-        input:checked + .slider:before { transform: translateX(22px); }
+        .btn-reset { background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: bold; }
+        .btn-reset:hover { background: #dc2626; }
 
-        .preview-container { background: #0b0b0f; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 450px; border: 2px dashed #2a2a3a; overflow: hidden; }
-        canvas { max-width: 100%; max-height: 65vh; object-fit: contain; display: none; box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
+        .preview-container { background: #0b0b0f; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 450px; border: 2px dashed #2a2a3a; overflow: hidden; position: relative; }
+        
+        /* 크기 및 위치 제어를 위한 래퍼 */
+        .canvas-container { position: relative; display: none; max-width: 100%; max-height: 65vh; box-shadow: 0 20px 40px rgba(0,0,0,0.6); cursor: crosshair; }
+        canvas { display: block; max-width: 100%; max-height: 65vh; object-fit: contain; }
+        
         .placeholder { color: var(--sub); text-align: center; font-size: 0.95rem; line-height: 1.5; }
+        .tip-box { font-size: 0.8rem; color: #a5b4fc; background: rgba(79, 70, 229, 0.15); padding: 10px; border-radius: 8px; margin-top: 5px; border: 1px solid rgba(79, 70, 229, 0.3); }
         
         .dl-btn { background: var(--accent); color: white; padding: 16px; border-radius: 12px; text-align: center; text-decoration: none; font-weight: bold; margin-top: 15px; width: 100%; display: none; box-sizing: border-box; font-size: 1.05rem; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); }
         .dl-btn:hover { background: #6366f1; }
@@ -43,36 +45,39 @@
 </head>
 <body>
 
-<h1>💬 Smooth Chat Customizer</h1>
+<h1>💬 Square Chat Customizer</h1>
+<div class="subtitle">배경을 1:1 정사각형 정중앙 배치로 늘리고, 프로필 사진을 클릭하여 완벽하게 가리세요.</div>
 
 <div class="wrapper">
     <div class="panel">
         <label for="imageLoader" class="upload-btn">📁 대화 캡처 이미지 업로드</label>
         <input type="file" id="imageLoader" accept="image/*">
         
-        <div class="section-title">여백 설정</div>
+        <div class="section-title">정사각형 & 여백 설정</div>
         <div class="ctrl-row">
-            <label>추가 외곽 마진</label>
+            <label>최소 추가 외곽 마진</label>
             <input type="range" id="marginRange" min="0" max="200" value="60">
         </div>
         <div class="ctrl-row">
-            <label>외부 마진 배경색</label>
+            <label>외부 정사각형 배경색</label>
             <input type="color" id="outerBg" value="#1a1a24">
         </div>
 
         <div class="section-title">
-            <span>익명화 (프로필 사진 지우기)</span>
-            <label class="switch">
-                <input type="checkbox" id="hideProfile" checked>
-                <span class="slider"></span>
-            </label>
+            <span>프로필 수동 가림막</span>
+            <button class="btn-reset" id="resetProfiles">가림막 전부 초기화</button>
         </div>
         <div class="ctrl-row">
-            <label>프로필 가림막 색상</label>
+            <label>가림막 원 크기 (반지름)</label>
+            <input type="range" id="profileRadius" min="10" max="80" value="35">
+        </div>
+        <div class="ctrl-row">
+            <label>가림막 색상</label>
             <input type="color" id="profileColor" value="#ccccdd">
         </div>
+        <div class="tip-box">💡 <b>사용 팁:</b> 우측 미리보기 화면에서 지우고 싶은 프로필 사진 정중앙을 마우스로 클릭하면 완벽하게 가려집니다.</div>
 
-        <div class="section-title">내부 색상 커스텀 (부드러운 안티앨리어싱 보존)</div>
+        <div class="section-title">내부 색상 커스텀 (글씨 깨짐 방지 적용)</div>
         <div class="ctrl-row">
             <label>글씨 및 아이콘 색상</label>
             <input type="color" id="chatText" value="#1a1a1a">
@@ -89,21 +94,26 @@
 
     <div>
         <div class="preview-container">
-            <div class="placeholder" id="placeholder">이미지를 업로드하면 깨짐 없는<br>매끄러운 결과물 미리보기가 표시됩니다.</div>
-            <canvas id="imageCanvas"></canvas>
+            <div class="placeholder" id="placeholder">이미지를 업로드하면 깨짐 없는<br>1:1 정사각형 결과물 미리보기가 표시됩니다.</div>
+            <div class="canvas-container" id="canvasContainer">
+                <canvas id="imageCanvas"></canvas>
+            </div>
         </div>
-        <a id="downloadLink" class="dl-btn">✨ 고화질 가공 이미지 다운로드</a>
+        <a id="downloadLink" class="dl-btn">✨ 고화질 1:1 정사각형 이미지 다운로드</a>
     </div>
 </div>
 
 <script>
     const imageLoader = document.getElementById('imageLoader');
+    const canvasContainer = document.getElementById('canvasContainer');
     const canvas = document.getElementById('imageCanvas');
     const ctx = canvas.getContext('2d');
     const placeholder = document.getElementById('placeholder');
     const downloadLink = document.getElementById('downloadLink');
+    const resetProfilesBtn = document.getElementById('resetProfiles');
 
     let originalImg = null;
+    let clickedProfiles = []; // 유저가 클릭한 프로필 좌표들을 저장할 배열
 
     imageLoader.addEventListener('change', (e) => {
         const file = e.target.files[0];
@@ -112,10 +122,12 @@
         const reader = new FileReader();
         reader.onload = (event) => {
             originalImg = new Image();
+            originalImg.crossOrigin = "anonymous"; 
             originalImg.onload = () => {
                 placeholder.style.display = 'none';
-                canvas.style.display = 'block';
+                canvasContainer.style.display = 'block';
                 downloadLink.style.display = 'block';
+                clickedProfiles = []; // 새 이미지 업로드 시 가림막 기록 초기화
                 draw();
             };
             originalImg.src = event.target.result;
@@ -123,8 +135,50 @@
         reader.readAsDataURL(file);
     });
 
-    const controls = ['marginRange', 'outerBg', 'chatText', 'bubbleBg', 'chatBg', 'hideProfile', 'profileColor'];
+    // 컨트롤 조작 시 실시간 반영
+    const controls = ['marginRange', 'outerBg', 'chatText', 'bubbleBg', 'chatBg', 'profileRadius', 'profileColor'];
     controls.forEach(id => document.getElementById(id).addEventListener('input', draw));
+
+    // 가림막 전체 리셋 버튼 이벤트
+    resetProfilesBtn.addEventListener('click', () => {
+        clickedProfiles = [];
+        draw();
+    });
+
+    // 미리보기 캔버스 클릭 시 프로필 좌표 역산 및 추가 저장
+    canvas.addEventListener('click', (e) => {
+        if (!originalImg) return;
+
+        // 화면상에 렌더링된 캔버스의 실제 물리 크기 구해오기
+        const rect = canvas.getBoundingClientRect();
+        
+        // 화면 클릭 좌표 -> 실제 Canvas 내부 고해상도 해상도 좌표로 1:1 매핑 연산
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        
+        const clickX = (e.clientX - rect.left) * scaleX;
+        const clickY = (e.clientY - rect.top) * scaleY;
+
+        // 마진 값과 테두리를 제외한 원본 대화창 내부 좌표계로 다시 역산하여 저장
+        const margin = parseInt(document.getElementById('marginRange').value);
+        const srcW = originalImg.width;
+        const srcH = originalImg.height;
+        const borderW = srcW + 6;
+        const borderH = srcH + 6;
+        const size = Math.max(borderW, borderH) + (margin * 2);
+        
+        const offsetX = (size - borderW) / 2 + 3;
+        const offsetY = (size - borderH) / 2 + 3;
+
+        const targetX = clickX - offsetX;
+        const targetY = clickY - offsetY;
+
+        // 원본 이미지 범위 안에 찍혔을 때만 기록 추가
+        if (targetX >= 0 && targetX <= srcW && targetY >= 0 && targetY <= srcH) {
+            clickedProfiles.push({ x: targetX, y: targetY });
+            draw();
+        }
+    });
 
     function hexToRgb(hex) {
         return {
@@ -137,12 +191,13 @@
     function draw() {
         if (!originalImg) return;
 
+        // 조작 컨트롤러 데이터 취합
         const margin = parseInt(document.getElementById('marginRange').value);
         const oBgHex = document.getElementById('outerBg').value;
         const cText = hexToRgb(document.getElementById('chatText').value);
         const cBubble = hexToRgb(document.getElementById('bubbleBg').value);
         const cBg = hexToRgb(document.getElementById('chatBg').value);
-        const hideProfile = document.getElementById('hideProfile').checked;
+        const pRadius = parseInt(document.getElementById('profileRadius').value);
         const pColorHex = document.getElementById('profileColor').value;
 
         const srcW = originalImg.width;
@@ -150,62 +205,31 @@
         const borderW = srcW + 6;
         const borderH = srcH + 6;
         
-        canvas.width = borderW + (margin * 2);
-        canvas.height = borderH + (margin * 2);
+        // [핵심 변경 1]: 가로/세로 중 긴 축을 기준으로 여백을 더해 '정사각형(1:1)' 크기를 강제 지정합니다.
+        const squareSize = Math.max(borderW, borderH) + (margin * 2);
+        canvas.width = squareSize;
+        canvas.height = squareSize;
 
-        // 1. 외부 마진 베이스 채우기
+        // 1. 전체 정사각형 영역을 외부 배경색으로 빈틈없이 채우기
         ctx.fillStyle = oBgHex;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 2. 오프스크린 가공 캔버스
+        // 2. 대화창 내용 가공용 독립 임시 오프스크린 생성
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = srcW;
         tempCanvas.height = srcH;
         const tCtx = tempCanvas.getContext('2d');
         tCtx.drawImage(originalImg, 0, 0);
 
-        // [프로필 삭제 영역]
-        if (hideProfile) {
-            const imgDataForDetect = tCtx.getImageData(0, 0, srcW, srcH);
-            const pixels = imgDataForDetect.data;
-            const startX = Math.floor(srcW * 0.02);
-            const endX = Math.floor(srcW * 0.15);
-            const boxWidth = endX - startX;
-            let inProfileY = false;
-            let profileStartY = 0;
+        // [핵심 변경 2]: 유저가 마우스로 클릭했던 위치에만 수동으로 프로필 가림막 원 생성
+        tCtx.fillStyle = pColorHex;
+        clickedProfiles.forEach(p => {
+            tCtx.beginPath();
+            tCtx.arc(p.x, p.y, pRadius, 0, Math.PI * 2);
+            tCtx.fill();
+        });
 
-            for (let y = Math.floor(srcH * 0.05); y < srcH - 50; y += 4) {
-                let colorVariance = 0;
-                let prevR = pixels[((y * srcW) + startX) * 4];
-                let prevG = pixels[((y * srcW) + startX) * 4 + 1];
-                let prevB = pixels[((y * srcW) + startX) * 4 + 2];
-
-                for (let x = startX; x < endX; x += 10) {
-                    const idx = ((y * srcW) + x) * 4;
-                    colorVariance += Math.abs(pixels[idx] - prevR) + Math.abs(pixels[idx+1] - prevG) + Math.abs(pixels[idx+2] - prevB);
-                    prevR = pixels[idx]; prevG = pixels[idx+1]; prevB = pixels[idx+2];
-                }
-
-                if (colorVariance > 180) { 
-                    if (!inProfileY) { inProfileY = true; profileStartY = y; }
-                } else {
-                    if (inProfileY) {
-                        let profileHeight = y - profileStartY;
-                        if (profileHeight > boxWidth * 0.6 && profileHeight < boxWidth * 1.4) {
-                            tCtx.fillStyle = pColorHex;
-                            tCtx.beginPath();
-                            const centerX = startX + (boxWidth / 2);
-                            const centerY = profileStartY + (profileHeight / 2);
-                            tCtx.arc(centerX, centerY, Math.min(boxWidth, profileHeight) / 2, 0, Math.PI * 2);
-                            tCtx.fill();
-                        }
-                        inProfileY = false;
-                    }
-                }
-            }
-        }
-
-        // 3. 선명도 보존형 선형 보간 블렌딩 (Linear Interpolation Blending)
+        // 3. 안티앨리어싱 선형 보간 블렌딩 색상 변환
         const imgData = tCtx.getImageData(0, 0, srcW, srcH);
         const data = imgData.data;
         const edgeR = data[0], edgeG = data[1], edgeB = data[2];
@@ -214,19 +238,17 @@
         for (let i = 0; i < data.length; i += 4) {
             const r = data[i], g = data[i+1], b = data[i+2];
             
-            if (hideProfile && r === pColorRgb.r && g === pColorRgb.g && b === pColorRgb.b) continue;
+            // 수동으로 생성한 가림막 색상 영역은 색상 변경 연산에서 완전히 제외
+            if (r === pColorRgb.r && g === pColorRgb.g && b === pColorRgb.b) continue;
 
             const brightness = 0.299 * r + 0.587 * g + 0.114 * b;
 
-            // [핵심 변경]: 칼같이 자르지 않고, 명도 비율(0~1)을 계산해 부드럽게 믹싱합니다.
             if (brightness < 130) {
-                // 글자(가장 어두움) ~ 말풍선 배경 사이의 보간
                 let factor = brightness / 130; 
                 data[i]   = cText.r + (cBubble.r - cText.r) * factor;
                 data[i+1] = cText.g + (cBubble.g - cText.g) * factor;
                 data[i+2] = cText.b + (cBubble.b - cText.b) * factor;
             } else {
-                // 말풍선 내부 ~ 대화방 전체 배경 사이의 보간
                 let factor = (brightness - 130) / (255 - 130);
                 if(factor > 1) factor = 1;
                 data[i]   = cBubble.r + (cBg.r - cBubble.r) * factor;
@@ -236,14 +258,21 @@
         }
         tCtx.putImageData(imgData, 0, 0);
 
-        // 4. 최종 프레임 배치
-        ctx.fillStyle = `rgb(${edgeR}, ${edgeG}, ${edgeB})`;
-        ctx.fillRect(margin, margin, borderW, borderH);
-        ctx.drawImage(tempCanvas, margin + 3, margin + 3);
+        // 4. 정사각형의 정중앙 좌표(Center Offset) 계산
+        const offsetX = (squareSize - borderW) / 2;
+        const offsetY = (squareSize - borderH) / 2;
 
-        // 5. 링크 바인딩
+        // 5. 정중앙에 3px 원본 주변색 프레임 깔기
+        ctx.fillStyle = `rgb(${edgeR}, ${edgeG}, ${edgeB})`;
+        ctx.fillRect(offsetX, offsetY, borderW, borderH);
+        
+        // 6. 3px 프레임 내부에 가공된 최종 고화질 대화창 얹기
+        ctx.drawImage(tempCanvas, offsetX + 3, offsetY + 3);
+
+        // 7. 다운로드 파일 매핑
+        downloadLink.href = canvas.toToDataURL ? canvas.toDataURL('image/png') : canvas.toDataURL('image/png');
         downloadLink.href = canvas.toDataURL('image/png');
-        downloadLink.download = 'smooth_chat_screenshot.png';
+        downloadLink.download = 'square_smooth_chat.png';
     }
 </script>
 
