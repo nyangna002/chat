@@ -12,7 +12,7 @@
         @media (max-width: 850px) { .wrapper { grid-template-columns: 1fr; } }
         
         .panel { background: var(--panel); padding: 25px; border-radius: 16px; display: flex; flex-direction: column; gap: 18px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-        .section-title { font-size: 1rem; font-weight: 700; color: #fff; border-left: 4px solid var(--accent); padding-left: 8px; margin: 5px 0; }
+        .section-title { font-size: 1rem; font-weight: 700; color: #fff; border-left: 4px solid var(--accent); padding-left: 8px; margin: 5px 0; display: flex; justify-content: space-between; align-items: center;}
         
         .upload-btn { background: #ffffff; color: #000000; padding: 14px; border-radius: 10px; text-align: center; cursor: pointer; font-weight: bold; display: block; transition: background 0.2s; }
         .upload-btn:hover { background: #e5e5e5; }
@@ -26,8 +26,15 @@
         input[type="color"]::-webkit-color-swatch { border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); }
         input[type="range"] { width: 55%; accent-color: var(--accent); }
         
+        /* 스위치 스타일 */
+        .switch { position: relative; display: inline-block; width: 44px; height: 22px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #444; transition: .3s; border-radius: 22px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--accent); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
         .preview-container { background: #0b0b0f; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 450px; border: 2px dashed #2a2a3a; overflow: hidden; }
-        /* 미리보기 화면 크기는 제한하되 내부 해상도는 깨지지 않게 처리 */
         canvas { max-width: 100%; max-height: 65vh; object-fit: contain; display: none; box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
         .placeholder { color: var(--sub); text-align: center; font-size: 0.95rem; line-height: 1.5; }
         
@@ -52,6 +59,18 @@
         <div class="ctrl-row">
             <label>외부 마진 배경색</label>
             <input type="color" id="outerBg" value="#1a1a24">
+        </div>
+
+        <div class="section-title">
+            <span>익명화 (프로필 사진 지우기)</span>
+            <label class="switch">
+                <input type="checkbox" id="hideProfile" checked>
+                <span class="slider"></span>
+            </label>
+        </div>
+        <div class="ctrl-row">
+            <label>프로필 가림막 색상</label>
+            <input type="color" id="profileColor" value="#ccccdd">
         </div>
 
         <div class="section-title">내부 텍스트 색상 조절</div>
@@ -111,8 +130,8 @@
         reader.readAsDataURL(file);
     });
 
-    // 모든 조절 버튼에 이벤트 바인딩
-    const controls = ['marginRange', 'outerBg', 'nameText', 'chatText', 'bubbleBg', 'chatBg'];
+    // 모든 조절 버튼 및 체크박스에 이벤트 바인딩
+    const controls = ['marginRange', 'outerBg', 'nameText', 'chatText', 'bubbleBg', 'chatBg', 'hideProfile', 'profileColor'];
     controls.forEach(id => document.getElementById(id).addEventListener('input', draw));
 
     function hexToRgb(hex) {
@@ -133,6 +152,8 @@
         const cText = hexToRgb(document.getElementById('chatText').value);
         const cBubble = hexToRgb(document.getElementById('bubbleBg').value);
         const cBg = hexToRgb(document.getElementById('chatBg').value);
+        const hideProfile = document.getElementById('hideProfile').checked;
+        const pColorHex = document.getElementById('profileColor').value;
 
         // 원본 고해상도 크기 그대로 반영
         const srcW = originalImg.width;
@@ -154,46 +175,28 @@
         const tCtx = tempCanvas.getContext('2d');
         tCtx.drawImage(originalImg, 0, 0);
 
-        const imgData = tCtx.getImageData(0, 0, srcW, srcH);
-        const data = imgData.data;
+        // [프로필 삭제 로직 추가] 
+        // 픽셀을 분석하기 전에 프로필 사진이 있을 확률이 매우 높은 구역(왼쪽 상단/중단 열)을 
+        // 스캔하여 원색 그룹이나 복잡한 픽셀 밀집 구역을 찾아내거나 단색으로 덮어씌웁니다.
+        if (hideProfile) {
+            const imgDataForDetect = tCtx.getImageData(0, 0, srcW, srcH);
+            const pixels = imgDataForDetect.data;
+            
+            // 일반적인 모바일 캡처에서 프로필 사진은 좌측 여백(X: 2% ~ 15%)에 위치하며, 
+            // 세로로 대화창을 따라 반복될 수 있으므로 좌측 수직 라인을 탐색합니다.
+            const startX = Math.floor(srcW * 0.02);
+            const endX = Math.floor(srcW * 0.15);
+            const boxWidth = endX - startX;
 
-        // 3px 라인을 위한 원본 가장자리 색상 보존
-        const edgeR = data[0], edgeG = data[1], edgeB = data[2];
+            // 픽셀을 한 줄씩 내려가며 '배경색과 확연히 다른 다채로운 색상 영역(프로필)'을 감지합니다.
+            let inProfileY = false;
+            let profileStartY = 0;
 
-        // 3. 4단계 명도 세분화 스캔 레이어
-        for (let i = 0; i < data.length; i += 4) {
-            const r = data[i], g = data[i+1], b = data[i+2];
-            // 표준 디지털 휘도 공식
-            const brightness = 0.299 * r + 0.587 * g + 0.114 * b;
+            for (let y = Math.floor(srcH * 0.05); y < srcH - 50; y += 4) {
+                let colorVariance = 0;
+                let prevR = pixels[((y * srcW) + startX) * 4];
+                let prevG = pixels[((y * srcW) + startX) * 4 + 1];
+                let prevB = pixels[((y * srcW) + startX) * 4 + 2];
 
-            if (brightness < 75) { 
-                // [레벨 1] 이름, 상단 바 텍스트 등 가장 진한 글씨 영역
-                data[i] = cName.r; data[i+1] = cName.g; data[i+2] = cName.b;
-            } else if (brightness >= 75 && brightness < 150) { 
-                // [레벨 2] 대화 본문 텍스트 및 일반 안내 문구 영역
-                data[i] = cText.r; data[i+1] = cText.g; data[i+2] = cText.b;
-            } else if (brightness >= 150 && brightness < 225) { 
-                // [레벨 3] 상대방/본인 말풍선 영역
-                data[i] = cBubble.r; data[i+1] = cBubble.g; data[i+2] = cBubble.b;
-            } else { 
-                // [레벨 4] 대화방 전체 배경 영역 (가장 밝음)
-                data[i] = cBg.r; data[i+1] = cBg.g; data[i+2] = cBg.b;
-            }
-        }
-        tCtx.putImageData(imgData, 0, 0);
-
-        // 4. 3px 원본 주변색 프레임 깔기
-        ctx.fillStyle = `rgb(${edgeR}, ${edgeG}, ${edgeB})`;
-        ctx.fillRect(margin, margin, borderW, borderH);
-        
-        // 5. 가공된 해상도 100% 픽셀 중심에 안착
-        ctx.drawImage(tempCanvas, margin + 3, margin + 3);
-
-        // 6. 다운로드 링크 생성
-        downloadLink.href = canvas.toDataURL('image/png');
-        downloadLink.download = 'highres_custom_chat.png';
-    }
-</script>
-
-</body>
-</html>
+                // 가로축 서칭으로 색상 변화도(분산) 측정
+                for (let x = startX; x < endX; x
