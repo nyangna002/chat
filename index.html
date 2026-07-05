@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ultimate Universal Chat Customizer</title>
+    <title>Stable Chat Customizer (Universal)</title>
     <style>
         :root { --bg: #14141b; --panel: #1f1f2e; --text: #ffffff; --sub: #8f8fa3; --accent: #4f46e5; }
         body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 30px 15px; display: flex; flex-direction: column; align-items: center; }
@@ -60,11 +60,10 @@
 </head>
 <body>
 
-<h1>💬 Ultimate Universal Chat Customizer</h1>
-<div class="subtitle">원본이 흰색 배경(라이트 모드)이든 어두운 배경이든 완벽하게 감지하여 말풍선만 추출합니다.</div>
+<h1>💬 Stable Chat Customizer</h1>
+<div class="subtitle">긴 문장으로 줄바꿈이 일어나도 색상이 깨지지 않도록 안정성을 극대화했습니다.</div>
 
 <div class="wrapper">
-    <!-- 왼쪽 제어판 -->
     <div class="panel">
         <label for="imageLoader" class="upload-btn">📁 대화 캡처 이미지 업로드</label>
         <input type="file" id="imageLoader" accept="image/*">
@@ -91,12 +90,8 @@
 
         <div class="section-title">💬 말풍선 및 배경 색상 변경</div>
         <div class="ctrl-row">
-            <label>상대방 말풍선 + 글씨 색상</label>
-            <input type="color" id="oppColor" value="#3b3b4f">
-        </div>
-        <div class="ctrl-row">
-            <label>나의 말풍선 + 글씨 색상</label>
-            <input type="color" id="myColor" value="#4f46e5">
+            <label>말풍선 + 글씨 통합 색상</label>
+            <input type="color" id="accentColor" value="#4f46e5">
         </div>
         <div class="ctrl-row">
             <label>대화창 내부 배경색</label>
@@ -128,13 +123,11 @@
         <button class="btn btn-danger" id="clearMasksBtn" style="width: 100%;">🧹 가림막 전부 리셋</button>
         
         <div class="tip-box">
-            <b>💡 묻힘 현상 해결 완료!</b><br>
-            보내주신 원본처럼 <b>흰색 배경(라이트 모드)</b>인 경우, 기존의 다크모드 전용 필터가 흰색 배경을 말풍선으로 오인해 전체가 묻히는 현상이 있었습니다.<br>
-            새로 탑재된 <b>[자동 감지 시스템]</b>이 이미지의 배경색을 판별하여, 라이트 모드일 때는 흰색 배경을 깔끔하게 지우고 말풍선과 글자만 정확히 추출해 드립니다!
+            <b>💡 안정성 패치 완료</b><br>
+            대화 텍스트가 너무 길어져서 화면 중앙(X축)을 넘어가더라도 색이 반대로 뒤집히거나 묻히는 버그를 원천 차단했습니다. 이제 어떤 대화 형태든 안정적으로 변환됩니다.
         </div>
     </div>
 
-    <!-- 오른쪽 프리뷰 -->
     <div>
         <div class="preview-container">
             <div class="placeholder" id="placeholder">이미지를 업로드하면 결과물 미리보기가 표시됩니다.</div>
@@ -191,7 +184,7 @@
         reader.readAsDataURL(file);
     });
 
-    const controls = ['marginRange', 'outerBg', 'oppColor', 'myColor', 'chatBg', 'bgModeSelect'];
+    const controls = ['marginRange', 'outerBg', 'accentColor', 'chatBg', 'bgModeSelect'];
     controls.forEach(id => document.getElementById(id).addEventListener('input', draw));
     
     guideColorInput.addEventListener('input', updateStickerGuideStyles);
@@ -336,8 +329,7 @@
 
         const margin = parseInt(document.getElementById('marginRange').value);
         const oBgHex = document.getElementById('outerBg').value;
-        const cOpp = hexToRgb(document.getElementById('oppColor').value);
-        const cMy = hexToRgb(document.getElementById('myColor').value);
+        const cAccent = hexToRgb(document.getElementById('accentColor').value);
         const cBg = hexToRgb(document.getElementById('chatBg').value);
         const mode = bgModeSelect.value;
 
@@ -363,6 +355,7 @@
         const imgData = tCtx.getImageData(0, 0, srcW, srcH);
         const data = imgData.data;
 
+        // 원본 이미지 모드 판단
         let isLightBg = true;
         if (mode === 'light') {
             isLightBg = true;
@@ -382,38 +375,31 @@
             isLightBg = (totalBright / 4) > 127;
         }
 
-        const midX = srcW / 2;
-
         for (let i = 0; i < data.length; i += 4) {
-            const pixelIndex = i / 4;
-            const x = pixelIndex % srcW;
-            
             const r = data[i], g = data[i+1], b = data[i+2];
             const brightness = 0.299 * r + 0.587 * g + 0.114 * b;
 
             if (isLightBg) {
-                // --- 라이트 모드 전용 하이퍼 이퀄라이저 ---
+                // --- 라이트 모드 (X축 무관 통합 가공) ---
                 if (r > 248 && g > 248 && b > 248) {
+                    // 순수 흰색 배경 -> 지정 배경색 적용
                     data[i]   = cBg.r;
                     data[i+1] = cBg.g;
                     data[i+2] = cBg.b;
                 } else {
-                    const targetColor = (x < midX) ? cOpp : cMy;
+                    // 모든 글자 및 말풍선 영역 -> 지정 액센트 컬러로 안정적으로 매핑
                     let f = (255 - brightness) / 255; 
-                    
-                    data[i]   = targetColor.r * (1 - f) + cBg.r * f;
-                    data[i+1] = targetColor.g * (1 - f) + cBg.g * f;
-                    data[i+2] = targetColor.b * (1 - f) + cBg.b * f;
+                    data[i]   = cAccent.r * (1 - f) + cBg.r * f;
+                    data[i+1] = cAccent.g * (1 - f) + cBg.g * f;
+                    data[i+2] = cAccent.b * (1 - f) + cBg.b * f;
                 }
             } else {
-                // --- 다크 모드 전용 필터 ---
+                // --- 다크 모드 (X축 무관 통합 가공) ---
                 if (brightness > 28) { 
-                    const targetColor = (x < midX) ? cOpp : cMy;
                     let f = (brightness - 28) / (255 - 28);
-                    
-                    data[i]   = cBg.r + (targetColor.r - cBg.r) * f;
-                    data[i+1] = cBg.g + (targetColor.g - cBg.g) * f;
-                    data[i+2] = cBg.b + (targetColor.b - cBg.b) * f;
+                    data[i]   = cBg.r + (cAccent.r - cBg.r) * f;
+                    data[i+1] = cBg.g + (cAccent.g - cBg.g) * f;
+                    data[i+2] = cBg.b + (cAccent.b - cBg.b) * f;
                 } else { 
                     let f = brightness / 28;
                     data[i]   = cBg.r * f;
@@ -425,15 +411,18 @@
         tCtx.putImageData(imgData, 0, 0);
         ctx.drawImage(tempCanvas, offsetX, offsetY);
 
+        // 확정된 영구 마스크 렌더링
         permanentMasks.forEach(mask => {
             ctx.fillStyle = mask.color;
             ctx.fillRect(mask.x, mask.y, mask.w, mask.h);
         });
 
+        // 다운로드 경로 업데이트
         downloadLink.href = canvas.toDataURL('image/png');
-        downloadLink.download = 'universal_chat_customizer.png';
+        downloadLink.download = 'stable_chat_customizer.png';
     }
 
+    // 반응형 스티커 위치 유지 조절
     window.addEventListener('resize', () => {
         if(!originalImg) return;
         const rect = canvasWrapper.getBoundingClientRect();
