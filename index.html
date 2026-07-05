@@ -139,4 +139,113 @@
 
         const margin = parseInt(document.getElementById('marginRange').value);
         const oBgHex = document.getElementById('outerBg').value;
-        const cText = hexToRgb(
+        const cText = hexToRgb(document.getElementById('chatText').value);
+        const cBubble = hexToRgb(document.getElementById('bubbleBg').value);
+        const cBg = hexToRgb(document.getElementById('chatBg').value);
+        const hideProfile = document.getElementById('hideProfile').checked;
+        const pColorHex = document.getElementById('profileColor').value;
+
+        const srcW = originalImg.width;
+        const srcH = originalImg.height;
+        const borderW = srcW + 6;
+        const borderH = srcH + 6;
+        
+        canvas.width = borderW + (margin * 2);
+        canvas.height = borderH + (margin * 2);
+
+        // 1. 외부 마진 베이스 채우기
+        ctx.fillStyle = oBgHex;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // 2. 오프스크린 가공 캔버스
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = srcW;
+        tempCanvas.height = srcH;
+        const tCtx = tempCanvas.getContext('2d');
+        tCtx.drawImage(originalImg, 0, 0);
+
+        // [프로필 삭제 영역]
+        if (hideProfile) {
+            const imgDataForDetect = tCtx.getImageData(0, 0, srcW, srcH);
+            const pixels = imgDataForDetect.data;
+            const startX = Math.floor(srcW * 0.02);
+            const endX = Math.floor(srcW * 0.15);
+            const boxWidth = endX - startX;
+            let inProfileY = false;
+            let profileStartY = 0;
+
+            for (let y = Math.floor(srcH * 0.05); y < srcH - 50; y += 4) {
+                let colorVariance = 0;
+                let prevR = pixels[((y * srcW) + startX) * 4];
+                let prevG = pixels[((y * srcW) + startX) * 4 + 1];
+                let prevB = pixels[((y * srcW) + startX) * 4 + 2];
+
+                for (let x = startX; x < endX; x += 10) {
+                    const idx = ((y * srcW) + x) * 4;
+                    colorVariance += Math.abs(pixels[idx] - prevR) + Math.abs(pixels[idx+1] - prevG) + Math.abs(pixels[idx+2] - prevB);
+                    prevR = pixels[idx]; prevG = pixels[idx+1]; prevB = pixels[idx+2];
+                }
+
+                if (colorVariance > 180) { 
+                    if (!inProfileY) { inProfileY = true; profileStartY = y; }
+                } else {
+                    if (inProfileY) {
+                        let profileHeight = y - profileStartY;
+                        if (profileHeight > boxWidth * 0.6 && profileHeight < boxWidth * 1.4) {
+                            tCtx.fillStyle = pColorHex;
+                            tCtx.beginPath();
+                            const centerX = startX + (boxWidth / 2);
+                            const centerY = profileStartY + (profileHeight / 2);
+                            tCtx.arc(centerX, centerY, Math.min(boxWidth, profileHeight) / 2, 0, Math.PI * 2);
+                            tCtx.fill();
+                        }
+                        inProfileY = false;
+                    }
+                }
+            }
+        }
+
+        // 3. 선명도 보존형 선형 보간 블렌딩 (Linear Interpolation Blending)
+        const imgData = tCtx.getImageData(0, 0, srcW, srcH);
+        const data = imgData.data;
+        const edgeR = data[0], edgeG = data[1], edgeB = data[2];
+        const pColorRgb = hexToRgb(pColorHex);
+
+        for (let i = 0; i < data.length; i += 4) {
+            const r = data[i], g = data[i+1], b = data[i+2];
+            
+            if (hideProfile && r === pColorRgb.r && g === pColorRgb.g && b === pColorRgb.b) continue;
+
+            const brightness = 0.299 * r + 0.587 * g + 0.114 * b;
+
+            // [핵심 변경]: 칼같이 자르지 않고, 명도 비율(0~1)을 계산해 부드럽게 믹싱합니다.
+            if (brightness < 130) {
+                // 글자(가장 어두움) ~ 말풍선 배경 사이의 보간
+                let factor = brightness / 130; 
+                data[i]   = cText.r + (cBubble.r - cText.r) * factor;
+                data[i+1] = cText.g + (cBubble.g - cText.g) * factor;
+                data[i+2] = cText.b + (cBubble.b - cText.b) * factor;
+            } else {
+                // 말풍선 내부 ~ 대화방 전체 배경 사이의 보간
+                let factor = (brightness - 130) / (255 - 130);
+                if(factor > 1) factor = 1;
+                data[i]   = cBubble.r + (cBg.r - cBubble.r) * factor;
+                data[i+1] = cBubble.g + (cBg.g - cBubble.g) * factor;
+                data[i+2] = cBubble.b + (cBg.b - cBubble.b) * factor;
+            }
+        }
+        tCtx.putImageData(imgData, 0, 0);
+
+        // 4. 최종 프레임 배치
+        ctx.fillStyle = `rgb(${edgeR}, ${edgeG}, ${edgeB})`;
+        ctx.fillRect(margin, margin, borderW, borderH);
+        ctx.drawImage(tempCanvas, margin + 3, margin + 3);
+
+        // 5. 링크 바인딩
+        downloadLink.href = canvas.toDataURL('image/png');
+        downloadLink.download = 'smooth_chat_screenshot.png';
+    }
+</script>
+
+</body>
+</html>
